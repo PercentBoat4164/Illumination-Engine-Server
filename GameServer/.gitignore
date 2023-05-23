@@ -1,0 +1,8 @@
+# Exclude Build Information
+*-build-*/
+
+# Exclude Venv for Python Tests
+venv/
+
+# Exclude IDE Information
+.idea/
