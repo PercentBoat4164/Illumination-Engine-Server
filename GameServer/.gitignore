@@ -6,3 +6,6 @@ venv/
 
 # Exclude IDE Information
 .idea/
+
+# Exclude Docs Build Directory
+docs/build/

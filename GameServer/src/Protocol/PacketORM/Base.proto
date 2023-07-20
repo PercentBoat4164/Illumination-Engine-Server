@@ -1,0 +1,20 @@
+syntax="proto3";
+package FromClientMessages;
+
+// Client Send / Server Receive Packets (have packet metadata as well as specific resource operations)
+
+// Packet Metadata contains bundle and resource ID to locate resource
+// A UID is also supplied to specify which user is making a request
+// A Mode specifies which operating mode is being used for the specific resource being accessed
+message PacketMeta {
+  uint64 bundleid = 1;
+  uint64 resid = 2;
+  uint64 uid = 3;
+  uint32 mode = 4;
+}
+
+// The Flag Resource Type requires a packet that contains metadata and optional flag write data
+message FlagProtocol {
+  PacketMeta meta = 1;
+  bytes writedata = 2;
+}

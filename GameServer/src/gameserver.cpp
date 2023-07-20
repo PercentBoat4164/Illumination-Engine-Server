@@ -1,30 +1,30 @@
-#include "Resources.h"
-#include "Protocol.h"
+#include "Protocol/PacketReader.hpp"
+#include "ResourceDelegator.hpp"
 
+#include <arpa/inet.h>
 #include <cstdio>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
-// Global Options Set Here
+// Global Options
 #define HOST "127.0.0.1"
 #define PORT 8887
 #define ALLOWADDRPORTREUSE 0
 #define CONNECTIONBACKLOG 10
 
-using namespace std;
-
 int main() {
     int reuse = ALLOWADDRPORTREUSE;
     struct sockaddr_in address{};
+
+    auto res = ResourceDelegator();
+    auto protocol = PacketReader(res);
 
     // Get Address Length
     int sockaddr_length = sizeof(address);
 
     // Defines Socket to Communicate Over IPv4 with TCP
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0){
+    if (sockfd < 0) {
         perror("Failed to Create Socket");
         exit(EXIT_FAILURE);
     };
@@ -39,11 +39,11 @@ int main() {
     // Configure Bind Options (sets hostname and port with the options set before)
     // AF-INET Specifies IPv4 Communication
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr =  inet_addr(HOST);
+    address.sin_addr.s_addr = inet_addr(HOST);
     address.sin_port = htons(PORT);
 
     // Attempt to Bind to Port and Address Specified Previously
-    int bindstatus = bind(sockfd, (struct sockaddr*) &address, sizeof(address));
+    int bindstatus = bind(sockfd, reinterpret_cast<sockaddr *>(&address), sizeof(address));
     if (bindstatus < 0) {
         perror("Failed to Bind Socket");
         exit(EXIT_FAILURE);
@@ -56,14 +56,11 @@ int main() {
         exit(EXIT_FAILURE);
     };
 
-    // Defines a Single Character Buffer for sending Simple Status Responses
-    char statbuffer[1] = {0};
-
-    int socket;
     char sockbuffer[4096];
 
     // Accepts a Connection on the Socket
-    socket = accept(sockfd, (struct sockaddr*) &address, (socklen_t*) &sockaddr_length);
+    int socket = accept4(sockfd, reinterpret_cast<sockaddr *>(&address),
+                         reinterpret_cast<socklen_t *>(&sockaddr_length), SOCK_CLOEXEC);
     if (socket < 0) {
         perror("Socket could not accept packet");
         exit(EXIT_FAILURE);
@@ -73,19 +70,8 @@ int main() {
     // Still Researching Multithreading for Multiple Simultaneous Connections
     while (true) {
         // Waits for Socket to Receive Data and Puts Socket Data in the sockbuffer
-        recv(socket, sockbuffer, sizeof(sockbuffer), MSG_WAITFORONE);
+        recv(socket, static_cast<char *>(sockbuffer), sizeof(sockbuffer), MSG_WAITFORONE);
 
-        bool stat = PacketReader::parsePacket(sockbuffer);
-
-        // Sends Socket Buffer Back if PacketReader Successfully Parses Packet
-        if (stat) send(socket, sockbuffer, 1, MSG_CONFIRM);
-
-        // Sends a Single 0 if Packet Fails to Parse
-        else send(socket, statbuffer, 1, MSG_CONFIRM);
+        protocol.parsePacket(static_cast<char *>(sockbuffer), sockfd);
     }
-}
-
-void shutdown(int socketfd) {
-    close(socketfd);
-    shutdown(socketfd, SHUT_RDWR);
 }

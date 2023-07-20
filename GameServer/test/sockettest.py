@@ -10,15 +10,16 @@ import time
 totaltests = 0
 passedtests = 0
 
+
 # Testing Function
 # Assumes Function Tested Returns a Tuple (bool, string)
 # that provides a success/fail state and an error message if unsuccessful
 def performTest(testfunc):
     global totaltests, passedtests
     try:
-        res : tuple[bool, str] = testfunc()
+        res: tuple[bool, str] = testfunc()
     except Exception as e:
-        res : tuple[bool, str] = (False, f"Error: {e}")
+        res: tuple[bool, str] = (False, f"Error: {e}")
 
     totaltests += 1
     if res[0]:
@@ -26,6 +27,7 @@ def performTest(testfunc):
         passedtests += 1
         return
     print(f"{testfunc.__name__} Failed\nMessage: {res[1]}")
+
 
 # Tests Socket Persistence and Tests Functionality (Server Should Print a Message Saying User id 14)
 @performTest
